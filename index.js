@@ -24,10 +24,10 @@ function printSeparator() {
 }
 
 const userAgents = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/134.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, seperti Gecko) Version/15.1 Safari/605.1.15',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/105.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Firefox/102.0'
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/102.0'
 ];
 
 function getRandomUserAgent() {
@@ -80,7 +80,7 @@ async function requestWithRetry(method, url, payload = null, config = {}, retrie
       } else if (method.toLowerCase() === 'post') {
         response = await axios.post(url, payload, config);
       } else {
-        throw new Error(`Metode ${method} tidak didukung.`);
+        throw new Error(`Method ${method} is not supported.`);
       }
       return response;
     } catch (error) {
@@ -100,7 +100,7 @@ async function readTokens() {
     const data = await fs.readFile('token.txt', 'utf-8');
     return data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   } catch (error) {
-    console.error(chalk.red(`Error membaca token.txt: ${error.message}`));
+    console.error(chalk.red(`Error reading token.txt: ${error.message}`));
     return [];
   }
 }
@@ -110,7 +110,7 @@ async function readProxies() {
     const data = await fs.readFile('proxy.txt', 'utf-8');
     return data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   } catch (error) {
-    console.error(chalk.red(`Error membaca proxy.txt: ${error.message}`));
+    console.error(chalk.red(`Error reading proxy.txt: ${error.message}`));
     return [];
   }
 }
@@ -118,9 +118,9 @@ async function readProxies() {
 async function getPublicIP(proxy) {
   try {
     const response = await requestWithRetry('get', 'https://api.ipify.org?format=json', null, getAxiosConfig(proxy));
-    return response?.data?.ip || 'IP tidak ditemukan';
+    return response?.data?.ip || 'IP not found';
   } catch (error) {
-    return 'Error mengambil IP';
+    return 'Error fetching IP';
   }
 }
 
@@ -139,12 +139,12 @@ let globalUseProxy = false;
 let globalProxies = [];
 
 async function initializeConfig() {
-  const useProxyAns = await askQuestion('Ingin menggunakan proxy? (y/n): ');
+  const useProxyAns = await askQuestion('Do you want to use a proxy? (y/n): ');
   if (useProxyAns.trim().toLowerCase() === 'y') {
     globalUseProxy = true;
     globalProxies = await readProxies();
     if (globalProxies.length === 0) {
-      console.log(chalk.yellow('Tidak ada proxy di proxy.txt. Lanjut tanpa proxy.'));
+      console.log(chalk.yellow('No proxies found in proxy.txt. Continuing without proxy.'));
       globalUseProxy = false;
     }
   }
@@ -153,16 +153,16 @@ async function initializeConfig() {
 async function processToken(token, index, total, proxy = null) {
   console.log();
   printSeparator();
-  console.log(chalk.bold.whiteBright(`Akun: ${index + 1}/${total}`));
+  console.log(chalk.bold.whiteBright(`Account: ${index + 1}/${total}`));
 
   let statusRes;
-  const spinnerStatus = ora({ text: 'Mengambil status akun...', spinner: 'dots2', color: 'cyan' }).start();
+  const spinnerStatus = ora({ text: 'Fetching account status...', spinner: 'dots2', color: 'cyan' }).start();
   try {
     const response = await requestWithRetry('get', 'https://merklev2.cess.network/merkle/task/status', null, getAxiosConfig(proxy, token));
     statusRes = response.data.data;
-    spinnerStatus.succeed(chalk.greenBright(' Status akun berhasil didapatkan'));
+    spinnerStatus.succeed(chalk.greenBright('Account status retrieved successfully'));
   } catch (error) {
-    spinnerStatus.fail(chalk.red(` Gagal mengambil status: ${error.message}`));
+    spinnerStatus.fail(chalk.red(`Failed to fetch status: ${error.message}`));
     return;
   }
 
@@ -170,28 +170,28 @@ async function processToken(token, index, total, proxy = null) {
   const username = accountData.username;
   const uuid = accountData.uuid;
   const wallet = accountData.account;
-  console.log(chalk.whiteBright(`Username   : ${username}`));
-  console.log(chalk.whiteBright(`UUID       : ${uuid}`));
-  console.log(chalk.whiteBright(`Wallet     : ${wallet}`));
+  console.log(chalk.whiteBright(`Username: ${username}`));
+  console.log(chalk.whiteBright(`UUID    : ${uuid}`));
+  console.log(chalk.whiteBright(`Wallet  : ${wallet}`));
   const ip = await getPublicIP(proxy);
-  console.log(chalk.whiteBright(`IP yang digunakan: ${ip}`));
+  console.log(chalk.whiteBright(`IP used: ${ip}`));
   printSeparator();
   console.log();
 
-  const spinnerCheckin = ora({ text: ' Melakukan checkin...', spinner: 'dots2', color: 'cyan' }).start();
+  const spinnerCheckin = ora({ text: 'Performing check-in...', spinner: 'dots2', color: 'cyan' }).start();
   try {
     const response = await requestWithRetry('post', 'https://merklev2.cess.network/merkle/task/checkin', {}, getAxiosConfig(proxy, token));
     if (response.data && response.data.code === 200) {
-      spinnerCheckin.succeed(chalk.greenBright(` Checkin berhasil, reward: ${response.data.data}`));
+      spinnerCheckin.succeed(chalk.greenBright(`Check-in successful, reward: ${response.data.data}`));
     } else {
-      spinnerCheckin.fail(chalk.red(' Checkin gagal: ' + (response.data.data || 'Response tidak valid')));
+      spinnerCheckin.fail(chalk.red('Check-in failed: ' + (response.data.data || 'Invalid response')));
     }
   } catch (error) {
-    spinnerCheckin.fail(chalk.red(` Checkin gagal: ${error.message}`));
+    spinnerCheckin.fail(chalk.red(`Check-in failed: ${error.message}`));
   }
 
   for (let i = 0; i < 3; i++) {
-    const spinnerUpload = ora({ text: ` Upload gambar ${i + 1}/3...`, spinner: 'dots2', color: 'cyan' }).start();
+    const spinnerUpload = ora({ text: `Uploading image ${i + 1}/3...`, spinner: 'dots2', color: 'cyan' }).start();
     try {
       const randomSeed = Math.floor(Math.random() * 100000);
       const imageUrl = `https://picsum.photos/seed/${randomSeed}/500/500`;
@@ -229,23 +229,23 @@ async function processToken(token, index, total, proxy = null) {
 
       const uploadResponse = await axios.post('https://filepool.cess.network/group1/upload', form, uploadConfig);
       if (uploadResponse.data && uploadResponse.data.status === 'ok') {
-        spinnerUpload.succeed(chalk.greenBright(` Upload gambar ${i + 1}/3 berhasil`));
+        spinnerUpload.succeed(chalk.greenBright(`Image ${i + 1}/3 uploaded successfully`));
       } else {
-        spinnerUpload.fail(chalk.red(` Upload gambar ${i + 1}/3 gagal: ${uploadResponse.data.message || 'Response tidak valid'}`));
+        spinnerUpload.fail(chalk.red(`Image ${i + 1}/3 upload failed: ${uploadResponse.data.message || 'Invalid response'}`));
       }
     } catch (error) {
-      spinnerUpload.fail(chalk.red(` Upload gambar ${i + 1}/3 gagal: ${error.message}`));
+      spinnerUpload.fail(chalk.red(`Image ${i + 1}/3 upload failed: ${error.message}`));
     }
     await delay(1);
   }
 
-  const spinnerPoint = ora({ text: ' Mengambil total points...', spinner: 'dots2', color: 'cyan' }).start();
+  const spinnerPoint = ora({ text: 'Fetching total points...', spinner: 'dots2', color: 'cyan' }).start();
   try {
     const finalResponse = await requestWithRetry('get', 'https://merklev2.cess.network/merkle/task/status', null, getAxiosConfig(proxy, token));
     const finalPoints = finalResponse.data.data.account.points;
-    spinnerPoint.succeed(chalk.greenBright(` Total Points : ${finalPoints}`));
+    spinnerPoint.succeed(chalk.greenBright(`Total Points: ${finalPoints}`));
   } catch (error) {
-    spinnerPoint.fail(chalk.red(` Gagal mengambil points: ${error.message}`));
+    spinnerPoint.fail(chalk.red(`Failed to fetch points: ${error.message}`));
   }
   printSeparator();
 }
@@ -253,7 +253,7 @@ async function processToken(token, index, total, proxy = null) {
 async function runCycle() {
   const tokens = await readTokens();
   if (tokens.length === 0) {
-    console.log(chalk.red('Tidak ada token di token.txt.'));
+    console.log(chalk.red('No tokens found in token.txt.'));
     return;
   }
 
@@ -262,13 +262,13 @@ async function runCycle() {
     try {
       await processToken(tokens[i], i, tokens.length, proxy);
     } catch (error) {
-      console.error(chalk.red(`Error pada akun ${i + 1}: ${error.message}`));
+      console.error(chalk.red(`Error on account ${i + 1}: ${error.message}`));
     }
   }
 }
 
 async function run() {
-  cfonts.say('NT EXHAUST', {
+  cfonts.say('ADB NODE', {
     font: 'block',
     align: 'center',
     colors: ['cyan', 'magenta'],
@@ -277,13 +277,13 @@ async function run() {
     lineHeight: 1,
     space: true
   });
-  console.log(centerText("=== Telegram Channel 🚀 : NT Exhaust (@NTExhaust) ==="));
-  console.log(centerText("✪ CESS AUTO DAILY CHECKIN & UPLOAD FILES ✪ \n"));
+  console.log(centerText("=== Telegram Channel 🚀 : ADB NODE (@airdropbombnode) ==="));
+  console.log(centerText("✪ CESS AUTO DAILY CHECK-IN & FILE UPLOAD ✪ \n"));
   await initializeConfig();
 
   while (true) {
     await runCycle();
-    console.log(chalk.magentaBright('Siklus selesai. Menunggu 24 jam sebelum pengulangan...'));
+    console.log(chalk.magentaBright('Cycle completed. Waiting 24 hours before repeating...'));
     await delay(86400);
   }
 }
